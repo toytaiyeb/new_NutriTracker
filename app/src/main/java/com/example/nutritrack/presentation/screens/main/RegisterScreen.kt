@@ -338,8 +338,6 @@ fun RegisterScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // error messsage display
-
                 if (showError) {
                     Text(
                         text = errorMessage,
