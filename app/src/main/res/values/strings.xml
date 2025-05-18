@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Nutritrack</string>
+    <string name="login_text">This app is only for pre-registered users. Please enter your ID, phone number and password to claim your account.</string>
+    <string name="continue_text">Continue</string>
+    <string name="my_id_provided_by_your_clinician">My ID (Provided by your Clinician)</string>
+    <string name="phone_number">Phone number</string>
+    <string name="enter_your_number">Enter your number</string>
+    <string name="login">Login</string>
+    <string name="password">Password</string>
+    <string name="enter_your_password">Enter your password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="enter_your_password_again">Enter your password again</string>
+    <string name="name">Name</string>
+    <string name="enter_your_name">Enter your name</string>
+    <string name="api_key_gemini">AIzaSyAx8jNjixFNzYewFZWfnorJ3-GE5KI0l7k</string>
+</resources>
