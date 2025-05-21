@@ -1,36 +1,17 @@
 package com.example.nutritrack.presentation.screens.main
 
-
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,199 +35,149 @@ import com.example.nutritrack.viewmodel.LoginViewModel
 @SuppressLint("DefaultLocale")
 @Composable
 fun ClinicianDashboardScreen(navController: NavHostController) {
-    var averageHEIFAMale by remember { mutableStateOf(0.0) }
-    var averageHEIFAFemale by remember { mutableStateOf(0.0) }
 
-    val insights = listOf(
-        "Variable Water Intake: Consumption of water varies greatly among the users in this dataset, with scores ranging from 0 to 100. There isn't a clear, immediate correlation in this small sample between water intake score and the overall HEIFA score, though some high scorers did have high water intake.",
-        "Low Wholegrain Consumption: The intake of wholegrains appears generally low across this group. Only one user in the provided sample data had a recorded intake and score for wholegrains, while the rest had zero.",
-        "Potential Gender Difference in HEIFA Scoring: The data includes columns for both HEIFAtotalscoreMale and HEIFAtotalscoreFemale for each user. In several cases, the potential score calculated for females is slightly higher than that calculated for males, suggesting the HEIFA criteria might result in slightly different potential maximums or scoring based on gender recommendations, independent of the actual user's intake."
+    // Track average HEIFA scores by gender
+    var heifaMaleAvg by remember { mutableStateOf(0.0) }
+    var heifaFemaleAvg by remember { mutableStateOf(0.0) }
+
+    // Sample insights to display in cards
+    val insightsList = listOf(
+        "Water Intake Scores vary drastically among users with no clear link to total HEIFA score.",
+        "Wholegrain consumption is noticeably low, with most users scoring 0.",
+        "HEIFA score potential varies by gender—females tend to have slightly higher potential totals."
     )
 
+    // Initialize required objects for accessing DB and ViewModel
     val context = LocalContext.current
-    val database = DatabaseBuilder.getInstance(context)
-    val repository = PatientRepository(database.patientDao())
-    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(repository))
+    val db = DatabaseBuilder.getInstance(context)
+    val repo = PatientRepository(db.patientDao())
+    val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(repo))
 
+    // Retrieve patient data and compute averages once on screen load
     LaunchedEffect(Unit) {
+        loginViewModel.getAllPatient { patientList ->
+            if (patientList != null) {
+                heifaMaleAvg = String.format("%.2f", patientList.filter { it.sex == "Male" }
+                    .map { it.heifaTotalScore }.average()).toDouble()
 
-        viewModel.getAllPatient { patients ->
-            Log.e("patients", patients.toString())
-            if (patients != null) {
-                averageHEIFAMale = String.format("%.2f", patients.filter { it.sex == "Male" }
-                    .map { it.heifaTotalScore }
-                    .average()
-                ).toDouble()
-
-                averageHEIFAFemale = String.format("%.2f", patients.filter { it.sex == "Female" }
-                    .map { it.heifaTotalScore }
-                    .average()
-                ).toDouble()
+                heifaFemaleAvg = String.format("%.2f", patientList.filter { it.sex == "Female" }
+                    .map { it.heifaTotalScore }.average()).toDouble()
             }
         }
-
     }
 
-    // Layout for Clinician Dashboard
+    // Main layout container
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(horizontal = 18.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(40.dp))
-        // Title
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Dashboard title
         Text(
             text = "Clinician Dashboard",
-            fontWeight = FontWeight.SemiBold,
             fontFamily = Fonts.Konnect,
             fontSize = 24.sp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
         )
 
-        // HEIFA Scores Row
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Spacer(modifier = Modifier.height(20.dp))
 
+        // HEIFA Scores Section
+        listOf(
+            "Average HEIFA (Male)" to heifaMaleAvg,
+            "Average HEIFA (Female)" to heifaFemaleAvg
+        ).forEach { (label, value) ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, Color.Gray, RoundedCornerShape(16.dp))
-                    .background(Color.LightGray, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(vertical = 6.dp)
+                    .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF4F4F4), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Average HEIFA (Male)",
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Fonts.Konnect,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = ":",
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Fonts.Konnect,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp),
-                        textAlign = TextAlign.End
-                    )
-                }
-
-
                 Text(
-                    text = "$averageHEIFAMale",
-                    fontWeight = FontWeight.Normal,
+                    text = label,
                     fontFamily = Fonts.Konnect,
-                    modifier = Modifier
-                        .weight(0.4f)
-                        .fillMaxWidth()
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = ": $value",
+                    fontFamily = Fonts.Konnect,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color.Gray, RoundedCornerShape(16.dp))
-                    .background(Color.LightGray, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Row(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Average HEIFA (Female)",
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Fonts.Konnect,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = ":",
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Fonts.Konnect,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp),
-                        textAlign = TextAlign.End
-                    )
-                }
-
-
-                Text(
-                    text = "$averageHEIFAFemale",
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = Fonts.Konnect,
-                    modifier = Modifier
-                        .weight(0.4f)
-                        .fillMaxWidth()
-                )
-            }
-
-
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // "Find Data Pattern" button
+        // Button for finding patterns (future feature)
         Box(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Button(
-                onClick = { },
+                onClick = { /* Placeholder for future data pattern logic */ },
                 colors = ButtonDefaults.buttonColors(containerColor = Purple),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.height(50.dp),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .height(48.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Details Icon",
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Find Data Pattern",
-                        color = Color.White,
-                        fontFamily = Fonts.Konnect,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search Icon",
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Find Data Pattern",
+                    color = Color.White,
+                    fontFamily = Fonts.Konnect,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // Insights Cards
-        insights.forEach { insight ->
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Display insight cards
+        insightsList.forEach { insight ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-                    .background(Color.White, RoundedCornerShape(8.dp)),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(4.dp)
+                    .padding(vertical = 6.dp)
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(10.dp)),
+                elevation = CardDefaults.cardElevation(2.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
                 Text(
                     text = insight,
                     fontFamily = Fonts.Konnect,
                     fontWeight = FontWeight.Normal,
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(14.dp)
                 )
             }
         }
 
-        // Done button at the bottom
-        Spacer(modifier = Modifier.weight(1f)) // Push Done button to the bottom
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Done button for exit or action
         Button(
-            onClick = { /* Handle "Done" action */ },
+            onClick = { /* Add navigation or functionality here */ },
             colors = ButtonDefaults.buttonColors(containerColor = Purple),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
+                .height(48.dp)
         ) {
             Text(
                 text = "Done",
@@ -255,16 +186,15 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
                 fontWeight = FontWeight.Medium
             )
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
-
-@Preview(showBackground = true)// it makes backgrounf visible
+@Preview(showBackground = true)
 @Composable
-fun ClinicianDashboardScreenPreview() {
+fun ClinicianDashboardPreview() {
     NutriTrackTheme {
-        val navController =
-            rememberNavController()// creates a dummy navcontroller. so it doesn't break in preview
-        ClinicianDashboardScreen(navController = navController) // shows actual login screen.
+        ClinicianDashboardScreen(navController = rememberNavController())
     }
 }

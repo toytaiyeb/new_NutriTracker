@@ -176,26 +176,7 @@ fun RegisterScreen(navController: NavController) {
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                     )
 
-//                    ExposedDropdownMenu(
-//                        expanded = expanded,
-//                        onDismissRequest = { expanded = false }
-//                    ) {
-//                        idOptions.forEach { id ->
-//                            DropdownMenuItem(
-//                                text = {
-//                                    Text(
-//                                        text = id,
-//                                        fontFamily = Fonts.Konnect,
-//                                        fontWeight = FontWeight.Normal
-//                                    )
-//                                },
-//                                onClick = {
-//                                    selectedId = id
-//                                    expanded = false
-//                                }
-//                            )
-//                        }
-//                    }
+//
                 }
 
 
