@@ -69,7 +69,7 @@ import com.example.nutritrack.viewmodel.FruitViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NutriCoachScreen(navController: NavHostController) {
-    // Remember the search text (fruit name)
+
 
     var searchQuery by remember { mutableStateOf("") }
     val fruitViewModel: FruitViewModel = viewModel(
