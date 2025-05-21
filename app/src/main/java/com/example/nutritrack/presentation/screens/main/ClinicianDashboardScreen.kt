@@ -28,6 +28,7 @@ import com.example.nutritrack.client.GeminiRetrofitClient
 import com.example.nutritrack.database.DatabaseBuilder
 import com.example.nutritrack.factory.GenAIInsightsViewModelFactory
 import com.example.nutritrack.factory.LoginViewModelFactory
+import com.example.nutritrack.presentation.navigation.route.Screen
 import com.example.nutritrack.presentation.theme.NutriTrackTheme
 import com.example.nutritrack.presentation.theme.Purple
 import com.example.nutritrack.presentation.theme.fonts.Fonts
@@ -37,28 +38,23 @@ import com.example.nutritrack.viewmodel.GenAIInsightsViewModel
 import com.example.nutritrack.viewmodel.LoginViewModel
 @SuppressLint("DefaultLocale")
 @Composable
+
 fun ClinicianDashboardScreen(navController: NavHostController) {
-    // HEIFA averages
     var heifaMaleAvg by remember { mutableStateOf(0.0) }
     var heifaFemaleAvg by remember { mutableStateOf(0.0) }
 
-    // Context + database + repository
     val context = LocalContext.current
     val db = DatabaseBuilder.getInstance(context)
     val patientDao = db.patientDao()
 
-    // ViewModels
     val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(PatientRepository(patientDao)))
     val insightsViewModel: GenAIInsightsViewModel = viewModel(factory = GenAIInsightsViewModelFactory(
         GenAIInsightsRepository(GeminiRetrofitClient.apiService, patientDao)
-    )
-    )
+    ))
 
-    // Observe insights and error from ViewModel
     val insights by insightsViewModel.insights.collectAsState()
     val error by insightsViewModel.error.collectAsState()
 
-    // Fetch patients and insights on screen load
     LaunchedEffect(Unit) {
         loginViewModel.getAllPatient { patientList ->
             if (patientList != null) {
@@ -69,134 +65,127 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
                     .map { it.heifaTotalScore }.average()).toDouble()
             }
         }
-
-        // Provide your API key here
         insightsViewModel.fetchInsights(apiKey = "AIzaSyAx8jNjixFNzYewFZWfnorJ3-GE5KI0l7k")
     }
 
-    // Layout
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 18.dp)
-            .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
+        // Scrollable content
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Text(
-            text = "Clinician Dashboard",
-            fontFamily = Fonts.Konnect,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
+            Text(
+                text = "Clinician Dashboard",
+                fontFamily = Fonts.Konnect,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-        listOf(
-            "Average HEIFA (Male)" to heifaMaleAvg,
-            "Average HEIFA (Female)" to heifaFemaleAvg
-        ).forEach { (label, value) ->
-            Row(
+            listOf(
+                "Average HEIFA (Male)" to heifaMaleAvg,
+                "Average HEIFA (Female)" to heifaFemaleAvg
+            ).forEach { (label, value) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF4F4F4), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = label,
+                        fontFamily = Fonts.Konnect,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = ": $value",
+                        fontFamily = Fonts.Konnect,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Button(
+                    onClick = { insightsViewModel.fetchInsights(apiKey = "AIzaSyAx8jNjixFNzYewFZWfnorJ3-GE5KI0l7k") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search Icon",
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Find Data Pattern",
+                        color = Color.White,
+                        fontFamily = Fonts.Konnect,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { navController.navigate(Screen.Settings.route) },
+                colors = ButtonDefaults.buttonColors(containerColor = Purple),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF4F4F4), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .height(48.dp)
             ) {
                 Text(
-                    text = label,
-                    fontFamily = Fonts.Konnect,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = ": $value",
-                    fontFamily = Fonts.Konnect,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Button(
-                onClick = { insightsViewModel.fetchInsights(apiKey = "YOUR_API_KEY_HERE") },
-                colors = ButtonDefaults.buttonColors(containerColor = Purple),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.height(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search Icon",
-                    tint = Color.White
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "Find Data Pattern",
+                    text = "Done",
                     color = Color.White,
                     fontFamily = Fonts.Konnect,
                     fontWeight = FontWeight.Medium
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Show error if any
-        error?.let {
-            Text(
-                text = "Error: $it",
-                color = Color.Red,
-                fontFamily = Fonts.Konnect,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(12.dp)
-            )
-        }
-
-        // Show dynamic insights
-        insights.forEach { insight ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(10.dp)),
-                elevation = CardDefaults.cardElevation(2.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Text(
-                    text = insight,
-                    fontFamily = Fonts.Konnect,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(14.dp)
-                )
+            insights.forEach { insight ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .border(1.dp, Color.LightGray, RoundedCornerShape(10.dp)),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Text(
+                        text = insight,
+                        fontFamily = Fonts.Konnect,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // Persistent Done button
 
-        Button(
-            onClick = { /* Navigate or perform action */ },
-            colors = ButtonDefaults.buttonColors(containerColor = Purple),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-        ) {
-            Text(
-                text = "Done",
-                color = Color.White,
-                fontFamily = Fonts.Konnect,
-                fontWeight = FontWeight.Medium
-            )
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
     }

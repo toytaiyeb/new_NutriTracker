@@ -22,7 +22,7 @@ class GenAIInsightsViewModel(
         viewModelScope.launch {
             when (val result = repository.fetchInsightsFromPatientData(apiKey)) {
                 is Result.Success -> _insights.value = result.data ?: listOf("No insights found")
-                is Result.Error -> _error.value = result.exception.message
+                is Result.Error -> _error.value = ""
             }
         }
     }
