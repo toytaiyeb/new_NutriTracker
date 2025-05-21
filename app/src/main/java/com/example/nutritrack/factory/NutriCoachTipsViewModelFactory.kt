@@ -5,11 +5,19 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.nutritrack.repository.NutriCoachTipsRepository
 import com.example.nutritrack.viewmodel.NutriCoachTipsViewModel
 
-class NutriCoachTipsViewModelFactory(private val repository: NutriCoachTipsRepository) : ViewModelProvider.Factory {
+/**
+ * Factory for creating an instance of NutriCoachTipsViewModel with a repository dependency.
+ */
+class NutriCoachTipsViewModelFactory(
+    private val tipRepo: NutriCoachTipsRepository
+) : ViewModelProvider.Factory {
+
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        // Ensure the requested ViewModel is of the expected type
         if (modelClass.isAssignableFrom(NutriCoachTipsViewModel::class.java)) {
-            return NutriCoachTipsViewModel(repository) as T
+            @Suppress("UNCHECKED_CAST")
+            return NutriCoachTipsViewModel(tipRepo) as T
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+        throw IllegalArgumentException("Invalid ViewModel class: ${modelClass.name}")
     }
 }

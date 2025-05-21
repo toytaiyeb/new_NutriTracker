@@ -3,6 +3,7 @@ package com.example.nutritrack.presentation.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -65,290 +66,222 @@ import com.example.nutritrack.repository.NutriCoachTipsRepository
 import com.example.nutritrack.repository.FruitRepository
 import com.example.nutritrack.viewmodel.NutriCoachTipsViewModel
 import com.example.nutritrack.viewmodel.FruitViewModel
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NutriCoachScreen(navController: NavHostController) {
-
+    val context = LocalContext.current
+    val apiKey = stringResource(R.string.api_key_gemini)
 
     var searchQuery by remember { mutableStateOf("") }
     val fruitViewModel: FruitViewModel = viewModel(
         factory = FruitViewModelFactory(FruitRepository(RetrofitClient.apiService))
     )
-    val context = LocalContext.current
     val database = DatabaseBuilder.getInstance(context)
     val nutriCoachTipsViewModel: NutriCoachTipsViewModel = viewModel(
         factory = NutriCoachTipsViewModelFactory(
             NutriCoachTipsRepository(
-                apiService = GeminiRetrofitClient.apiService,
-                dao = database.nutriCoachTipsDao()
+                GeminiRetrofitClient.apiService,
+                database.nutriCoachTipsDao()
             )
         )
     )
 
-    // Observe LiveData from ViewModel
+    val fruitDetailsResult by fruitViewModel.fruitDetails.observeAsState()
     val motivationalMessageResult by nutriCoachTipsViewModel.motivationalMessage.observeAsState()
     val savedMessages by nutriCoachTipsViewModel.savedMessages.observeAsState(emptyList())
 
-
-    // Observe the fruit details
-    val fruitDetailsResult by fruitViewModel.fruitDetails.observeAsState()
-
-    val fruitDetails = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var fruitDetails by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     val defaultDetails = mapOf(
-        "Family" to "N/A",
-        "Calories" to "N/A",
-        "Fat" to "N/A",
-        "Sugar" to "N/A",
-        "Carbohydrates" to "N/A",
-        "Protein" to "N/A"
+        "Family" to "N/A", "Calories" to "N/A", "Fat" to "N/A",
+        "Sugar" to "N/A", "Carbohydrates" to "N/A", "Protein" to "N/A"
     )
-    val apiKey = stringResource(R.string.api_key_gemini)
 
-    val detailsToShow = if (fruitDetails.value.isEmpty()) defaultDetails else fruitDetails.value
-    // State to control showing the dialog
     var showDialog by remember { mutableStateOf(false) }
-
-    // Motivational message from AI
     var motivationalMessage by remember { mutableStateOf("No message available") }
 
-    Box(modifier = Modifier.fillMaxSize()) { // Use Box to position the button at the bottom
-        Column(
+    val detailsToShow = if (fruitDetails.isEmpty()) defaultDetails else fruitDetails
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Title
-            Spacer(modifier = Modifier.height(40.dp))
 
-            Text(
-                text = "NutriCoach",
-                fontWeight = FontWeight.Bold,
-                fontFamily = Fonts.Konnect,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Column(modifier = Modifier.fillMaxWidth()) {
+            item {
                 Text(
-                    text = "Fruit Name",
-                    fontWeight = FontWeight.SemiBold,
+                    text = "NutriCoach Assistant",
+                    fontWeight = FontWeight.ExtraBold,
                     fontFamily = Fonts.Konnect,
-                    fontSize = 16.sp
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Row(
+                    fontSize = 22.sp,
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically // Center items vertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                            .border(1.dp, Color.Gray, RoundedCornerShape(16.dp))
-                            .background(Color.White, RoundedCornerShape(16.dp))
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            item {
+                Column {
+                    Text(
+                        text = "Search Fruit",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        fontFamily = Fonts.Konnect
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             placeholder = {
-                                Text(
-                                    "Banana",
-                                    fontFamily = Fonts.Konnect,
-                                    fontWeight = FontWeight.Normal
-                                )
+                                Text("e.g. Apple", fontFamily = Fonts.Konnect)
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            shape = RoundedCornerShape(25.dp),
                             colors = TextFieldDefaults.textFieldColors(
-                                containerColor = Color.Transparent,
+                                containerColor = Color(0xFFF1F1F1),
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent
                             )
                         )
-                    }
-
-                    Button(
-                        onClick = {
-                            if (searchQuery.isNotBlank()) {
-                                fruitViewModel.fetchFruitDetails(searchQuery)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Purple),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(45.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Details Icon",
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Details",
-                                color = Color.White,
-                                fontFamily = Fonts.Konnect,
-                                fontWeight = FontWeight.Medium
-                            )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(
+                            onClick = {
+                                if (searchQuery.isNotBlank()) {
+                                    fruitViewModel.fetchFruitDetails(searchQuery)
+                                }
+                            },
+                            shape = RoundedCornerShape(25.dp),
+                            colors = ButtonDefaults.buttonColors(Purple),
+                            modifier = Modifier.height(56.dp)
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Color.White)
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                fruitDetailsResult?.let { result ->
+                    when (result) {
+                        is com.example.nutritrack.utils.Result.Success -> {
+                            result.data?.let { fruit ->
+                                fruitDetails = mapOf(
+                                    "Family" to fruit.family,
+                                    "Calories" to fruit.nutritions.calories.toString(),
+                                    "Fat" to fruit.nutritions.fat.toString(),
+                                    "Sugar" to fruit.nutritions.sugar.toString(),
+                                    "Carbohydrates" to fruit.nutritions.carbohydrates.toString(),
+                                    "Protein" to fruit.nutritions.protein.toString()
+                                )
+                            }
+                        }
 
-            when (val result = fruitDetailsResult) {
-                is com.example.nutritrack.utils.Result.Success -> {
-                    result.data?.let { fruit ->
+                        is com.example.nutritrack.utils.Result.Error -> {
+                            Text(
+                                text = "Could not fetch data.",
+                                color = Color.Red,
+                                fontFamily = Fonts.Konnect
+                            )
+                        }
 
-                        fruitDetails.value = mapOf(
-                            "Family" to fruit.family,
-                            "Calories" to fruit.nutritions.calories.toString(),
-                            "Fat" to fruit.nutritions.fat.toString(),
-                            "Sugar" to fruit.nutritions.sugar.toString(),
-                            "Carbohydrates" to fruit.nutritions.carbohydrates.toString(),
-                            "Protein" to fruit.nutritions.protein.toString()
-                        )
-
-
+                        else -> Unit
                     }
                 }
 
-                is com.example.nutritrack.utils.Result.Error -> {
-                    Text(
-                        text = "No Data Found",
-                        fontFamily = Fonts.Konnect,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Red
-                    )
-                }
-
-                else -> {
-
-                }
-            }
-            // Fruit Details
-            Column(modifier = Modifier.fillMaxWidth()) {
-                detailsToShow.forEach { (label, value) ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, Color.Gray, RoundedCornerShape(16.dp))
-                            .background(Color.LightGray, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Row(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "$label",
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = Fonts.Konnect,
-                            )
-                            Text(
-                                text = ":",
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = Fonts.Konnect,
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        detailsToShow.forEach { (key, value) ->
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(end = 16.dp),
-                                textAlign = TextAlign.End
-                            )
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(key, fontFamily = Fonts.Konnect, fontWeight = FontWeight.SemiBold)
+                                Text(value, fontFamily = Fonts.Konnect)
+                            }
                         }
-
-
-                        Text(
-                            text = value,
-                            fontWeight = FontWeight.Normal,
-                            fontFamily = Fonts.Konnect,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                        )
                     }
                 }
             }
 
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            Button(
-                onClick = { nutriCoachTipsViewModel.fetchMotivationalMessage(apiKey) },
-                colors = ButtonDefaults.buttonColors(containerColor = Purple),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(R.drawable.chat),
-                        contentDescription = "Details Icon",
-                        colorFilter = ColorFilter.tint(Color.White),
-                        modifier = Modifier.size(24.dp)
+            item {
+                Button(
+                    onClick = { nutriCoachTipsViewModel.fetchMotivationalMessage(apiKey) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.chat),
+                        contentDescription = "Chat Icon",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Motivational Message (AI)",
-                        color = Color.White,
+                        "Get AI Motivation",
                         fontFamily = Fonts.Konnect,
-                        fontWeight = FontWeight.Medium
+                        color = Color.White
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
-            motivationalMessageResult?.let {
-                when (it) {
-                    is com.example.nutritrack.utils.Result.Success -> {
-                        motivationalMessage = it.data ?: "No message available"
-                    }
+            item {
+                motivationalMessageResult?.let {
+                    when (it) {
+                        is com.example.nutritrack.utils.Result.Success -> {
+                            motivationalMessage = it.data ?: "Stay positive!"
+                        }
 
-                    is com.example.nutritrack.utils.Result.Error -> {
-                        Text(text = "Error: ${it.exception.message}")
+                        is com.example.nutritrack.utils.Result.Error -> {
+                            motivationalMessage = "Error fetching message"
+                        }
                     }
                 }
-            }
-            Text(
-                text = motivationalMessage,
-                fontFamily = Fonts.Konnect,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
-                lineHeight = 17.sp,
-                color = Color.Black,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = 16.dp)
-            )
-        }
 
-        // Always position the "Show All Tips" button at the bottom
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 90.dp, end = 16.dp),
-            contentAlignment = Alignment.BottomEnd
-        ) {
-            Button(
-                onClick = {
-                    nutriCoachTipsViewModel.fetchSavedMessages()
-                    showDialog = true
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Purple),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            ) {
-                Text(
-                    text = "Show All Tips",
-                    color = Color.White,
-                    fontFamily = Fonts.Konnect,
-                    fontWeight = FontWeight.Medium
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEAF6FF))
+                ) {
+                    Text(
+                        text = motivationalMessage,
+                        fontFamily = Fonts.Konnect,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            }
+
+            item {
+                Button(
+                    onClick = {
+                        nutriCoachTipsViewModel.fetchSavedMessages()
+                        showDialog = true
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 80.dp)
+                ) {
+                    Text(
+                        "Show All Tips",
+                        color = Color.White,
+                        fontFamily = Fonts.Konnect
+                    )
+                }
             }
         }
 
@@ -360,87 +293,54 @@ fun NutriCoachScreen(navController: NavHostController) {
     }
 }
 
-
 @Composable
 fun ShowAllTipsDialog(savedMessages: List<NutriCoachTips>, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            shape = RoundedCornerShape(12.dp),
             color = Color.White
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "AI Tips",
-                    fontFamily = Fonts.Konnect,
-                    fontWeight = FontWeight.Bold,
+                    text = "All AI Tips",
                     fontSize = 18.sp,
-                    modifier = Modifier.padding(bottom = 16.dp),
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
                     textAlign = TextAlign.Center
                 )
 
-                // Display each saved AI tip
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(400.dp)
-                ) {
-                    items(savedMessages) { message ->
+                LazyColumn(modifier = Modifier.height(400.dp)) {
+                    items(savedMessages) { tip ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 2.dp, vertical = 8.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-
+                                .padding(vertical = 6.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
                         ) {
                             Text(
-                                text = message.message,
-                                fontFamily = Fonts.Konnect,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(16.dp)
+                                text = tip.message,
+                                modifier = Modifier.padding(12.dp),
+                                fontFamily = Fonts.Konnect
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Done Button
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(end = 16.dp),
-                    contentAlignment = Alignment.BottomEnd
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple)
                 ) {
-                    Button(
-                        onClick = { onDismiss() },
-                        colors = ButtonDefaults.buttonColors(containerColor = Purple),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            text = "Done",
-                            color = Color.White,
-                            fontFamily = Fonts.Konnect,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                    Text("Close", color = Color.White)
                 }
-
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun NutriCoachScreenPreview() {
-    NutriTrackTheme {
-        NutriCoachScreen(rememberNavController())
     }
 }
