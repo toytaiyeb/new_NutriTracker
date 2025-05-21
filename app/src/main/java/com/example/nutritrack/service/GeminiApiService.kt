@@ -10,7 +10,7 @@ import retrofit2.http.Query
 interface GeminiApiService {
 
     @POST("v1beta/models/gemini-2.0-flash:generateContent")
-    suspend fun generateMotivationalMessage(
+    suspend fun generateInsights(
         @Query("key") apiKey: String, // The API key as query parameter
         @Body requestBody: MessageRequest
     ): Response<MessageResponse>

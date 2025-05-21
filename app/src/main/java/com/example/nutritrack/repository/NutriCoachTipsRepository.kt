@@ -13,7 +13,7 @@ class NutriCoachTipsRepository(private val apiService: GeminiApiService, private
     // Fetch motivational message from the Gemini API
     suspend fun fetchMotivationalMessage(apiKey: String): Result<String> {
         return try {
-            val response = apiService.generateMotivationalMessage(apiKey, MessageRequest(
+            val response = apiService.generateInsights(apiKey, MessageRequest(
                 contents = listOf(
                     Content(parts = listOf(Part(text = "Generate a short encouraging message to help someone improve their fruit intake.")))
                 )
