@@ -66,6 +66,7 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
         }
     }
 
+
     // Main layout container
     Column(
         modifier = Modifier
@@ -190,6 +191,7 @@ fun ClinicianDashboardScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable

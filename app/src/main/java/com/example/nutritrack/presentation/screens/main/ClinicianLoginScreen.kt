@@ -148,7 +148,7 @@ fun ClinicianLoginScreen(navController: NavController) {
                 Button(
                     onClick = { // Inside your Continue button onClick:
 
-                        if (clinicianKey == "dollar-entry-apples"){
+                        if (clinicianKey == "d"){
 
                             navController.navigate(Screen.ClinicianDashboard.route)
                         }else{

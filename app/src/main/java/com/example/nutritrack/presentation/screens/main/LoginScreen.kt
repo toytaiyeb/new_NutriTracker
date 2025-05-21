@@ -63,68 +63,61 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
-    // system UI controller foe status bar customization
-    val systemUiController = rememberSystemUiController()
-
     val context = LocalContext.current
-    val database = DatabaseBuilder.getInstance(context)
-    val repository = PatientRepository(database.patientDao())
+    val db = DatabaseBuilder.getInstance(context)
+    val repository = PatientRepository(db.patientDao())
     val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(repository))
 
-    var selectedId by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var showError by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
-    var isAccountClaimed by remember { mutableStateOf(false) }
+    val systemUi = rememberSystemUiController()
 
-    val patients by viewModel.patients.collectAsState()
+    var selectedUserId by remember { mutableStateOf("") }
+    var enteredPhone by remember { mutableStateOf("") }
+    var enteredPassword by remember { mutableStateOf("") }
+    var errorVisible by remember { mutableStateOf(false) }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var isUserClaimed by remember { mutableStateOf(false) }
+
+    val patientList by viewModel.patients.collectAsState()
 
     LaunchedEffect(Unit) {
-
         if (isFirstLaunch(context)) {
-            val patientsFromCsv = loadPatientsFromCSV(context)
-            repository.insertPatients(patientsFromCsv)
+            val loadedPatients = loadPatientsFromCSV(context)
+            repository.insertPatients(loadedPatients)
             markFirstLaunchComplete(context)
         }
         viewModel.loadPatients()
     }
 
-    val idOptions = patients.map { it.userId }
-    // side effect to set status bar color to white.
+    val availableIds = patientList.map { it.userId }
+
     SideEffect {
-        systemUiController.setStatusBarColor(
-            color = Color.White, // Purple
-            darkIcons = false // false = white icons
-        )
+        systemUi.setStatusBarColor(Color.White, darkIcons = false)
     }
-    // main container layout.
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Top Purple background Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
-                .background(Purple),
+                .background(Purple)
         )
 
-        // Main Rounded white container
         Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .offset(y = (-20).dp), // shifts white surface on box
+                .offset(y = (-20).dp),
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
             color = Color.White,
             tonalElevation = 4.dp
         ) {
-            // content column
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,9 +125,9 @@ fun LoginScreen(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
-                // login title
+
                 Text(
-                    text = "Log in",
+                    text = "Welcome Back",
                     fontFamily = Fonts.Konnect,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 20.sp,
@@ -143,64 +136,44 @@ fun LoginScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                //  userID selection dropdown box
+                // Dropdown for selecting UserID
                 ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                    expanded = dropdownExpanded,
+                    onExpandedChange = { dropdownExpanded = !dropdownExpanded }
                 ) {
                     OutlinedTextField(
-                        readOnly = true,
-                        value = selectedId,
+                        value = selectedUserId,
                         onValueChange = {},
+                        readOnly = true,
                         label = {
-                            Text(
-                                stringResource(R.string.my_id_provided_by_your_clinician),
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = Fonts.Konnect,
-                                fontSize = 14.sp,
-                                color = Color.Black
-                            )
+                            Text("User ID", fontFamily = Fonts.Konnect, fontSize = 14.sp)
                         },
                         placeholder = {
-                            Text(
-                                text = "Select your id",
-                                fontFamily = Fonts.Konnect,
-                                fontWeight = FontWeight.Normal,
-                                color = Color.Gray
-                            )
+                            Text("Choose your ID", color = Color.Gray)
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded)
                         },
                         modifier = Modifier
                             .menuAnchor()
                             .fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                        },
                         colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                     )
 
                     ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        expanded = dropdownExpanded,
+                        onDismissRequest = { dropdownExpanded = false }
                     ) {
-                        idOptions.forEach { id ->
+                        availableIds.forEach { id ->
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = id,
-                                        fontFamily = Fonts.Konnect,
-                                        fontWeight = FontWeight.Normal
-                                    )
-                                },
+                                text = { Text(id, fontFamily = Fonts.Konnect) },
                                 onClick = {
-                                    selectedId = id
-                                    expanded = false
+                                    selectedUserId = id
+                                    dropdownExpanded = false
                                     viewModel.getPatient(id) { patient ->
-                                        if (patient != null && patient.name.isNotBlank() && patient.password.isNotBlank()) {
-                                            isAccountClaimed = true
-                                        } else {
-                                            isAccountClaimed = false
-                                        }
+                                        isUserClaimed = patient?.name?.isNotBlank() == true &&
+                                                patient.password?.isNotBlank() == true
                                     }
                                 }
                             )
@@ -208,148 +181,96 @@ fun LoginScreen(navController: NavController) {
                     }
                 }
 
-
                 Spacer(modifier = Modifier.height(16.dp))
 
-
-                if (isAccountClaimed) {
+                if (isUserClaimed) {
                     OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = {
-                            Text(
-                                stringResource(R.string.password),
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = Fonts.Konnect,
-                                fontSize = 14.sp,
-                                color = Color.Black
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                                stringResource(R.string.enter_your_password),
-                                fontFamily = Fonts.Konnect,
-                                fontWeight = FontWeight.Normal,
-                                color = Color.Gray
-                            )
-                        },
+                        value = enteredPassword,
+                        onValueChange = { enteredPassword = it },
+                        label = { Text("Password", fontFamily = Fonts.Konnect) },
+                        placeholder = { Text("Enter password") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            keyboardType = KeyboardType.Password
-                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         visualTransformation = PasswordVisualTransformation()
                     )
                 } else {
                     OutlinedTextField(
-                        value = phoneNumber,
-                        onValueChange = { phoneNumber = it },
-                        label = {
-                            Text(
-                                stringResource(R.string.phone_number),
-                                fontWeight = FontWeight.Medium,
-                                fontFamily = Fonts.Konnect,
-                                fontSize = 14.sp,
-                                color = Color.Black
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                                stringResource(R.string.enter_your_number),
-                                fontFamily = Fonts.Konnect,
-                                fontWeight = FontWeight.Normal,
-                                color = Color.Gray
-                            )
-                        },
+                        value = enteredPhone,
+                        onValueChange = { enteredPhone = it },
+                        label = { Text("Phone Number", fontFamily = Fonts.Konnect) },
+                        placeholder = { Text("Enter phone number") },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            keyboardType = KeyboardType.Phone
-                        )
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                     )
-
-
                 }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Info text before continue button
                 Text(
-                    text = stringResource(R.string.login_text),
+                    text = "Login to proceed or claim your account using your phone number.",
                     fontSize = 12.sp,
-                    color = Color.Black,
                     fontFamily = Fonts.Konnect,
                     fontWeight = FontWeight.Medium,
-                    lineHeight = 16.sp
+                    color = Color.Black
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // error messsage display
-
-                if (showError) {
+                if (errorVisible) {
                     Text(
-                        text = "Invalid ID or phone number/password",
+                        text = "Invalid credentials. Please try again.",
                         color = Color.Red,
                         fontSize = 14.sp,
-                        modifier = Modifier.padding(vertical = 8.dp),
                         fontFamily = Fonts.Konnect
                     )
                 }
 
-                // Continue Button which leads to Questionnaire
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Button(
-                    onClick = { // Inside your Continue button onClick:
-
-                        viewModel.getPatient(selectedId) { patient ->
-                            Log.e("[asd]", selectedId + " " + password)
+                    onClick = {
+                        viewModel.getPatient(selectedUserId) { patient ->
                             if (patient != null) {
-                                showError = false
-                                if (patient.name.isNotBlank() && patient.password.isNotBlank()) {
-                                    if (password.isBlank()) {
-                                        showError = true
+                                errorVisible = false
+                                if (isUserClaimed) {
+                                    if (enteredPassword.isBlank()) {
+                                        errorVisible = true
                                     } else {
-
                                         viewModel.validateUserByPassword(
-                                            selectedId,
-                                            password
-                                        ) { isValid ->
-                                            if (isValid) {
-                                                // UserID and Password matched, proceed to Questionnaire screen
-                                                Utils.saveUserId(context, selectedId)
+                                            selectedUserId,
+                                            enteredPassword
+                                        ) { valid ->
+                                            if (valid) {
+                                                Utils.saveUserId(context, selectedUserId)
                                                 navController.navigate(Screen.Questionnaire.route)
                                             } else {
-                                                // Show error if validation fails
-                                                showError = true
+                                                errorVisible = true
                                             }
                                         }
                                     }
                                 } else {
-
                                     viewModel.validateUserByNumber(
-                                        selectedId,
-                                        phoneNumber
-                                    ) { isValid ->
-                                        if (isValid) {
-                                            navController.navigate(Screen.Register.createRoute(selectedId, patient.phoneNumber ?: ""))
-
+                                        selectedUserId,
+                                        enteredPhone
+                                    ) { valid ->
+                                        if (valid) {
+                                            navController.navigate(
+                                                Screen.Register.createRoute(
+                                                    selectedUserId,
+                                                    patient.phoneNumber ?: ""
+                                                )
+                                            )
                                         } else {
-                                            // Show error if validation fails
-                                            showError = true
+                                            errorVisible = true
                                         }
                                     }
-                                    navController.navigate(
-                                        Screen.Register.createRoute(
-                                            selectedId, patient.phoneNumber
-                                                ?: ""
-                                        )
-                                    )
-
                                 }
                             } else {
-                                showError = true
+                                errorVisible = true
                             }
                         }
-
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -358,24 +279,16 @@ fun LoginScreen(navController: NavController) {
                     colors = ButtonDefaults.buttonColors(containerColor = Purple)
                 ) {
                     Text(
-                        text = if (isAccountClaimed) {
-                            stringResource(R.string.login)
-                        } else {
-                            stringResource(R.string.continue_text)
-                        },
-                        fontSize = 16.sp,
+                        text = if (isUserClaimed) "Log In" else "Continue",
                         color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = Fonts.Konnect
+                        fontSize = 16.sp,
+                        fontFamily = Fonts.Konnect,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         }
-
-
     }
-
-
 }
 
 
